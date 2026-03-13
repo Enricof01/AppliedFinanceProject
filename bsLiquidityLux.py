@@ -91,7 +91,22 @@ def bsLiquidity(bars : Bars):
                                 if aZZ.y[i] < maxP:
                                     maxP = aZZ.y[i]
                 if count > 2:
-                    getB = b_liq[0].start_index
+                    getB = b_liq[0]
+                    if st_B == getB.start_index:
+                        getB.bx.top = ((minP + maxP) / 2) + (atr/liqMar)
+                        getB.bx.bottom = ((minP + maxP) / 2) - (atr/liqMar)
+                        getB.bx.right = b.index + 10
+                    
+                    else: 
+                        bxl = m.Box(bottom=((minP + maxP) / 2) - (atr/liqMar), top=((minP + maxP) / 2) + (atr/liqMar), left=st_B, right=b.index+10)
+                        bzl = m.Box()
+                        l = m.Liquidity(bx=bxl, bz = bzl, broken=False, level = st_B)
+                        b_liq.insert(0, l)
+                if len(b_liq) > visLiq:
+                    b_liq.pop()
+                    
+
+
 
                
             
@@ -104,15 +119,9 @@ def bsLiquidity(bars : Bars):
 
 def main():
     #hier die probedaten laden
-    b = m.Bar()
-    n = b.close
-    ta.pivotHigh()
-    print("test")
-    bars : Bars = []
-    for i in range(5):
-        b = m.Bar()
-        bars.append(b)
-    bsLiquidity(bars)
+    l = m.Liquidity()
+    print(l)
+   
 
 
 if __name__ == "__main__":
