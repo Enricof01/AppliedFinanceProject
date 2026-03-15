@@ -3,12 +3,15 @@
 import numpy as np
 import technicalAnalysis as ta
 import models as m
+import yfinance as yf
+import pandas as pd
+from data_pipeline import load_bitget_btcusdt_5m
 #----
 
 
 #Constants:
 liqLen = 7
-liqMar = 10
+liqMar = 1.4492
 
 liqBuy = True
 marBuy = 2.3
@@ -31,7 +34,11 @@ print("---runs---")
     
 type Bars = list[m.Bar]
 type LiquidityColl = list[m.Liquidity]
+dummyBox = m.Box(0,0,0,0)
+dummyBar = m.Bar()
 dummyLiq = m.Liquidity()
+dummyLiq.bx = dummyBox
+dummyLiq.start_bar = dummyBar
 #Function
 def bsLiquidity(bars : Bars):
     #initialization of containers ---
@@ -41,6 +48,7 @@ def bsLiquidity(bars : Bars):
     #---------
     #constants ---
     maxSize = 50
+    loop = 0
     #------
     x1 = None
     y1 = None
@@ -50,7 +58,9 @@ def bsLiquidity(bars : Bars):
     per = True #change --- only the last 500 bars are to watch
 
     for i, b in enumerate(bars):
-        pivotHigh = ta.pivotHigh(bars=bars, currentIndex=i, left=7)
+        loop += 1
+        pivotHigh = ta.pivotHigh(bars=bars, currentIndex=i, left=liqLen)
+        pivotLow = ta.pivotLow(bars=bars, currentIndex=i, left=liqLen)
         if b.index > 0: x2 = b.index - 1 
         else: continue
            
@@ -61,14 +71,18 @@ def bsLiquidity(bars : Bars):
             dir = aZZ.direction[0]
             x1  = aZZ.x[0]
             y1  = aZZ.y[0]
-            if i > 0:  y1 =  b.h[i - 1] 
-            else: continue
+            
+            if i > 0:
+                y2 = bars[i - 1].high
+            else:
+                continue
 
             if dir < 1:
                 aZZ.in_and_out(1, x2, y2)
             else: 
                 if dir == 1 and pivotHigh > y1:
-                    aZZ.index.insert(0,x2), aZZ.price.insert(0,y2)
+                    aZZ.x[0] = x2
+                    aZZ.y[0] = y2
             
             if per:
                 count = 0
@@ -76,52 +90,122 @@ def bsLiquidity(bars : Bars):
                 st_B  = 0
                 minP  = 0.
                 maxP  = 10e6
+                liqtouches = []
 
-                for i in range(maxSize - 1):
-                    if aZZ.d[i] == 1:
-                        if aZZ.y[i] > pivotHigh + (atr/liqMar):
+                for j in range(len(aZZ.direction)):
+                    if aZZ.direction[j] == 1 and atr != None:
+                        if aZZ.y[j] > pivotHigh + (atr/liqMar):
                             break
                         else: 
-                            if aZZ.y[i] > pivotHigh - (atr/liqMar) and aZZ.y[i] < pivotHigh + (atr/liqMar):
+                            if aZZ.y[j] > pivotHigh - (atr/liqMar) and aZZ.y[j] < pivotHigh + (atr/liqMar):
                                 count += 1
-                                st_B = aZZ.x[i]
-                                st_P = aZZ.y[i]
-                                if aZZ.y[i] > minP:
-                                    minP =  aZZ.y[i]
-                                if aZZ.y[i] < maxP:
-                                    maxP = aZZ.y[i]
+                                st_B = aZZ.x[j]
+                                st_P = aZZ.y[j]
+                                if aZZ.y[j] > minP:
+                                    minP =  aZZ.y[j]
+                                if aZZ.y[j] < maxP:
+                                    maxP = aZZ.y[j]
+                                liqtouches.append(st_P)
                 if count > 2:
                     getB = b_liq[0]
                     if st_B == getB.start_index:
                         getB.bx.top = ((minP + maxP) / 2) + (atr/liqMar)
                         getB.bx.bottom = ((minP + maxP) / 2) - (atr/liqMar)
                         getB.bx.right = b.index + 10
+                        print("Liqiuidity was updated")
                     
                     else: 
                         bxl = m.Box(bottom=((minP + maxP) / 2) - (atr/liqMar), top=((minP + maxP) / 2) + (atr/liqMar), left=st_B, right=b.index+10)
-                        bzl = m.Box()
-                        l = m.Liquidity(bx=bxl, bz = bzl, broken=False, level = st_B)
+                        # bzl = m.Box()
+                        l = m.Liquidity(bx=bxl,  broken=False, level = st_P, start_bar=bars[st_B])
+                        l.start_index = st_B
                         b_liq.insert(0, l)
+
+                        print(f"Liqiuidity was created at  time {b.time} and price {st_P} \n")
+                        print([t for t in liqtouches])
                 if len(b_liq) > visLiq:
                     b_liq.pop()
-                    
+       
 
+        if pivotLow:                    
+            dir = aZZ.direction[0]
+            x1  = aZZ.x[0]
+            y1  = aZZ.y[0]
+            
+            if i > 0:
+                y2 = bars[i - 1].low
+            else:
+                continue
 
-
+            if dir > -1:
+                aZZ.in_and_out(-1, x2, y2)
+            else: 
+                if dir == -1 and pivotLow < y1:
+                    aZZ.x[0] = x2
+                    aZZ.y[0] = y2
                
             
-
-        print(b)
+        if len(b_liq) >= 1: 
+            for bl in b_liq:
+                if bl.bx.top != 0:
+                    if b.high > bl.bx.top:
+                        bl.broken = True
+                if bl.broken:
+                 b_liq.remove(bl)
+            
         
-    print("no fkn way") 
+    # return {"d": aZZ.direction,"y" : aZZ.y}
+    return b_liq
+        
+   
 
 
 
 def main():
     #hier die probedaten laden
-    l = m.Liquidity()
-    print(l)
-   
+    # l = m.Liquidity()
+    p : Bars = []
+    # for i in range(100):
+    #     c = m.Bar(i,i,i,i)
+    #     p.append(c)
+    # bsLiquidity(p)
+
+    # ticker = "BTC-USD"
+    # data = yf.download(tickers=ticker, period="5d", interval="5m")
+    # closeList = data["Close"]["BTC-USD"].tolist()
+    # openList = data["Open"]["BTC-USD"].tolist()
+    # highList = data["High"]["BTC-USD"].tolist()
+    # lowList = data["Low"]["BTC-USD"].tolist()
+    # timestamp = data["Close"].index.to_list()
+
+
+    # i = 0
+    # for c,o,h,l,t in zip(closeList, openList, highList,lowList, timestamp):
+    #     bar = m.Bar(open = o, low = l, high = h, close = c, index=i, time=t)
+    #     p.append(bar)
+    #     i = i+1
+
+    data = load_bitget_btcusdt_5m()
+    closeList = data["close"].tolist()
+    openList = data["open"].tolist()
+    highList = data["high"].tolist()
+    lowList = data["low"].tolist()
+    timestamp = data["timestamp"].to_list()
+
+    i = 0
+    for c,o,h,l,t in zip(closeList, openList, highList,lowList, timestamp):
+        bar = m.Bar(open = o, low = l, high = h, close = c, index=i, time=t)
+        p.append(bar)
+        i = i+1
+
+
+
+
+    bl = bsLiquidity(p)
+    
+
+    for li in bl:
+        print ("active " , li.level, li.start_bar.time)
 
 
 if __name__ == "__main__":

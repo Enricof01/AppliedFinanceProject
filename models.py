@@ -7,13 +7,14 @@ class Bar:
     low: float = 0
     close: float = 0
     index: int = 0
+    time: str = ""
 
 @dataclass 
 class Box:
     def __init__(self, left, top, right, bottom):
         self.left = left
         self.top = top
-        self.righ = right
+        self.right = right
         self.bottom = bottom
 
 @dataclass
@@ -38,6 +39,7 @@ class Liquidity:
     
         level: float = None
         start_index: int =None
+        start_bar : Bar = None
         broken: bool = None
         bx : Box = None
         bz : Box = None
@@ -45,12 +47,12 @@ class Liquidity:
 @dataclass
 class ZZ:
     def __init__(self):
-        self.direction: list[int] = []
-        self.index: list[int] = []
-        self.price: list[float] = []
+        self.direction: list[int] = [0 for i in range(50)]
+        self.x: list[int] = [0 for i in range(50)]
+        self.y: list[float] = [None for i in range(50)]
 
     def in_and_out(self, _d: int, _i: int, _p: float):
         self.direction.insert(0, _d)
-        self.index.insert(0, _i)
-        self.price.insert(0, _p)
+        self.x.insert(0, _i)
+        self.y.insert(0, _p)
 

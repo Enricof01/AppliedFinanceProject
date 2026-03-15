@@ -27,7 +27,7 @@ def pivotHigh(bars : Bars, currentIndex: int, left: int):
         return None
 
     for i in range(pivot_index - left, pivot_index):
-        if bars[i].high >= ph:
+        if bars[i].high > ph:
             return None
 
     return ph
@@ -46,7 +46,7 @@ def pivotLow(bars : Bars, currentIndex: int, left: int):
         return None
 
     for i in range(pivot_index - left, pivot_index):
-        if bars[i].high <= pl:
+        if bars[i].high < pl:
             return None
 
     return pl
