@@ -6,7 +6,7 @@ def load_bitget_btcusdt_5m(limit: int = 320) -> pd.DataFrame:
     params = {
         "symbol": "BTCUSDT",
         "productType": "USDT-FUTURES",
-        "granularity": "1H",
+        "granularity": "15m",
         "limit": str(limit),
     }
 
@@ -38,5 +38,5 @@ def load_bitget_btcusdt_5m(limit: int = 320) -> pd.DataFrame:
     return df
 
 df = load_bitget_btcusdt_5m()
-print(df.head())
-print(df.tail())
+# print(df.head())
+# print(df.tail())

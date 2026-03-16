@@ -55,4 +55,7 @@ class ZZ:
         self.direction.insert(0, _d)
         self.x.insert(0, _i)
         self.y.insert(0, _p)
+        self.direction.pop()
+        self.x.pop()
+        self.y.pop()
 
