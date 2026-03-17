@@ -9,7 +9,7 @@ from data_pipeline import load_bitget_btcusdt_5m
 
 #Constants:
 liqLen = 7
-liqMar = 1.4492
+liqMar = 1.44927536
 
 liqBuy = True
 marBuy = 2.3
@@ -61,7 +61,7 @@ def bsLiquidity(bars : Bars):
            
 
         atr = ta.atr(bars=bars, currentIndex=i, length=10)
-
+        print(atr, b.time)
         if pivotHigh:
             dir = aZZ.direction[0]
             x1  = aZZ.x[0]
@@ -188,7 +188,7 @@ def bsLiquidity(bars : Bars):
                         l.start_index = st_B
                         s_liq.insert(0, l)
 
-                        print(f"Sellside Liqiuidity was created at  time {b.time} and price {st_P}")
+                        print(f"Sellside Liqiuidity was created at  time bar start time{bars[st_B].time} and price {st_P}")
                         print([t for t in liqtouches])
                     if len(s_liq) > visLiq:
                         s_liq.pop()                                                
@@ -223,7 +223,7 @@ def main():
     p : Bars = []
 
 
-    data = load_bitget_btcusdt_5m(limit=330)
+    data = load_bitget_btcusdt_5m(limit=1000)
     closeList = data["close"].tolist()
     openList = data["open"].tolist()
     highList = data["high"].tolist()
