@@ -1,12 +1,12 @@
 import requests
 import pandas as pd
 
-def load_bitget_btcusdt_5m(limit: int = 320) -> pd.DataFrame:
+def load_bitget_btcusdt_5m(limit: int) -> pd.DataFrame:
     url = "https://api.bitget.com/api/v2/mix/market/candles"
     params = {
         "symbol": "BTCUSDT",
         "productType": "USDT-FUTURES",
-        "granularity": "15m",
+        "granularity": "5m",
         "limit": str(limit),
     }
 
@@ -37,6 +37,4 @@ def load_bitget_btcusdt_5m(limit: int = 320) -> pd.DataFrame:
     df = df.sort_values("timestamp").reset_index(drop=True)
     return df
 
-df = load_bitget_btcusdt_5m()
-# print(df.head())
-# print(df.tail())
+

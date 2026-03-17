@@ -1,10 +1,8 @@
 #Indicator for buy and sellside liquidity
 #imports ---
-import numpy as np
 import technicalAnalysis as ta
 import models as m
-import yfinance as yf
-import pandas as pd
+# import pandas as pd
 from data_pipeline import load_bitget_btcusdt_5m
 #----
 
@@ -34,16 +32,6 @@ print("---runs---")
     
 type Bars = list[m.Bar]
 type LiquidityColl = list[m.Liquidity]
-dummybuyBox = m.Box(0,0,0,0)
-dummysellBox = m.Box(0,0,0,0)
-dummybuyBar = m.Bar()
-dummysellBar = m.Bar()
-dummybuyLiq = m.Liquidity()
-dummysellLiq = m.Liquidity()
-dummybuyLiq.bx = dummybuyBox
-dummysellLiq.bx = dummysellBox
-dummybuyLiq.start_bar = dummybuyBar
-dummysellLiq.start_bar = dummysellBar
 
 #Function
 def bsLiquidity(bars : Bars):
@@ -51,8 +39,7 @@ def bsLiquidity(bars : Bars):
     aZZ = m.ZZ()
     b_liq : LiquidityColl = []
     s_liq : LiquidityColl = []
-    s_liq.append(dummysellLiq)
-    b_liq.append(dummybuyLiq)
+
     #---------
     #constants ---
     maxSize = 50
@@ -99,6 +86,7 @@ def bsLiquidity(bars : Bars):
                 minP  = 0.
                 maxP  = 10e6
                 liqtouches = []
+                updated = False
 
                 for j in range(len(aZZ.direction)):
                     if aZZ.direction[j] == 1 and atr != None:
@@ -114,25 +102,30 @@ def bsLiquidity(bars : Bars):
                                 if aZZ.y[j] < maxP:
                                     maxP = aZZ.y[j]
                                 liqtouches.append(st_P)
+                                
                 if count > 2:
-                    getB = b_liq[0]
-                    if st_B == getB.start_index:
-                        getB.bx.top = ((minP + maxP) / 2) + (atr/liqMar)
-                        getB.bx.bottom = ((minP + maxP) / 2) - (atr/liqMar)
-                        getB.bx.right = b.index + 10
-                        print("Liqiuidity was updated")
-                    
-                    else: 
+                    if len(b_liq) > 0:
+                        getB = b_liq[0]
+                   
+                   
+                        if st_B == getB.bx.left:
+                            getB.bx.top = ((minP + maxP) / 2) + (atr/liqMar)
+                            getB.bx.bottom = ((minP + maxP) / 2) - (atr/liqMar)
+                            getB.bx.right = b.index + 10
+                            print("Buyside Liqiuidity was updated")
+                            updated = True
+                        
+                    if not updated: 
                         bxl = m.Box(bottom=((minP + maxP) / 2) - (atr/liqMar), top=((minP + maxP) / 2) + (atr/liqMar), left=st_B, right=b.index+10)
                         # bzl = m.Box()
                         l = m.Liquidity(bx=bxl,  broken=False, level = st_P, start_bar=bars[st_B])
                         l.start_index = st_B
                         b_liq.insert(0, l)
 
-                        print(f"Liqiuidity was created at  time {b.time} and price {st_P}")
+                        print(f"Buyside Liqiuidity was created at  time {b.time} and price {st_P}")
                         print([t for t in liqtouches])
-                if len(b_liq) > visLiq:
-                    b_liq.pop()
+                    if len(b_liq) > visLiq:
+                        b_liq.pop()
        
 
         if pivotLow:                    
@@ -158,13 +151,14 @@ def bsLiquidity(bars : Bars):
                 minP  = 0.
                 maxP  = 10e6
                 liqtouches = []
+                updated = False
 
                 for j in range(len(aZZ.direction)):
                     if aZZ.direction[j] == -1 and atr != None:
                         if aZZ.y[j] < pivotLow - (atr/liqMar):
                             break
                         else: 
-                            if aZZ.y[j] > pivotLow - (atr/liqMar) and aZZ.y[j] < pivotLow + (atr/liqMar):
+                            if aZZ.y[j] > (pivotLow - (atr/liqMar)) and aZZ.y[j] < (pivotLow + (atr/liqMar)):
                                 count += 1
                                 st_B = aZZ.x[j]
                                 st_P = aZZ.y[j]
@@ -175,14 +169,19 @@ def bsLiquidity(bars : Bars):
                                 liqtouches.append(st_P)
 
                 if count > 2:
-                    getB = s_liq[0]
-                    if st_B == getB.start_index:
-                        getB.bx.top = ((minP + maxP) / 2) + (atr/liqMar)
-                        getB.bx.bottom = ((minP + maxP) / 2) - (atr/liqMar)
-                        getB.bx.right = b.index + 10
-                        print("Sellside Liqiuidity was updated")
+                   
+                    if len(s_liq) > 0:
+                        getB = s_liq[0]
                     
-                    else: 
+
+                        if st_B == getB.bx.left:
+                            getB.bx.top = ((minP + maxP) / 2) + (atr/liqMar)
+                            getB.bx.bottom = ((minP + maxP) / 2) - (atr/liqMar)
+                            getB.bx.right = b.index + 10
+                            print(f"Sellside Liqiuidity was updated at {b.time}")
+                            updated = True
+                    
+                    if not updated: 
                         bxl = m.Box(bottom=((minP + maxP) / 2) - (atr/liqMar), top=((minP + maxP) / 2) + (atr/liqMar), left=st_B, right=b.index+10)
                         # bzl = m.Box()
                         l = m.Liquidity(bx=bxl,  broken=False, level = st_P, start_bar=bars[st_B])
@@ -191,25 +190,25 @@ def bsLiquidity(bars : Bars):
 
                         print(f"Sellside Liqiuidity was created at  time {b.time} and price {st_P}")
                         print([t for t in liqtouches])
-                if len(s_liq) > visLiq:
-                    s_liq.pop()                                                
+                    if len(s_liq) > visLiq:
+                        s_liq.pop()                                                
 
             
         if len(b_liq) >= 1: 
             for bl in b_liq:
-                if bl.bx.top != 0:
-                    if b.high > bl.bx.top:
-                        bl.broken = True
-                if bl.broken:
-                 b_liq.remove(bl)
+                if bl.level is not None and b.high > bl.bx.top:
+                    bl.broken = True
+                    print(f"bsl was broken at {b.time}")
+
+            b_liq = [bl for bl in b_liq if not bl.broken]
 
         if len(s_liq) >= 1: 
             for sl in s_liq:
-                if sl.bx.top != 0:
-                    if b.low < sl.bx.bottom:
-                        sl.broken = True
-                if sl.broken:
-                 s_liq.remove(sl)                 
+                if sl.level is not None and b.low < sl.bx.bottom:
+                    sl.broken = True
+                    print(f"ssl was broken at {b.time}")
+
+            s_liq = [sl for sl in s_liq if not sl.broken]            
             
         
     # return {"d": aZZ.direction,"y" : aZZ.y}
@@ -220,30 +219,11 @@ def bsLiquidity(bars : Bars):
 
 
 def main():
-    #hier die probedaten laden
-    # l = m.Liquidity()
+
     p : Bars = []
-    # for i in range(100):
-    #     c = m.Bar(i,i,i,i)
-    #     p.append(c)
-    # bsLiquidity(p)
-
-    # ticker = "BTC-USD"
-    # data = yf.download(tickers=ticker, period="5d", interval="5m")
-    # closeList = data["Close"]["BTC-USD"].tolist()
-    # openList = data["Open"]["BTC-USD"].tolist()
-    # highList = data["High"]["BTC-USD"].tolist()
-    # lowList = data["Low"]["BTC-USD"].tolist()
-    # timestamp = data["Close"].index.to_list()
 
 
-    # i = 0
-    # for c,o,h,l,t in zip(closeList, openList, highList,lowList, timestamp):
-    #     bar = m.Bar(open = o, low = l, high = h, close = c, index=i, time=t)
-    #     p.append(bar)
-    #     i = i+1
-
-    data = load_bitget_btcusdt_5m()
+    data = load_bitget_btcusdt_5m(limit=330)
     closeList = data["close"].tolist()
     openList = data["open"].tolist()
     highList = data["high"].tolist()

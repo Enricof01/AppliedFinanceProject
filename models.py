@@ -37,12 +37,14 @@ class Line:
 @dataclass
 class Liquidity:
     
-        level: float = None
-        start_index: int =None
-        start_bar : Bar = None
-        broken: bool = None
-        bx : Box = None
-        bz : Box = None
+    level: float = None
+    start_index: int =None
+    start_bar : Bar = None
+    broken: bool = None
+    bx : Box = None
+    bz : Box = None
+
+
 
 @dataclass
 class ZZ:
