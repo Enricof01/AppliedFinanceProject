@@ -61,7 +61,7 @@ def bsLiquidity(bars : Bars):
            
 
         atr = ta.atr(bars=bars, currentIndex=i, length=10)
-        print(atr, b.time)
+        
         if pivotHigh:
             dir = aZZ.direction[0]
             x1  = aZZ.x[0]
